@@ -1,129 +1,85 @@
-/**
- * Mil4dy - Main Orchestrator
- * 
- * This is the conductor that coordinates all modules:
- * - Camera captures frames
- * - Vision describes scenes
- * - Poetry transforms descriptions
- * - TTS speaks the poetry
- * - AudioBuffer ensures continuous playback
- * 
- * The key challenge is timing: we must generate clips AHEAD of playback
- * so the poetry never stops. This is the "buffer strategy".
- */
-
-import { camera } from './modules/camera.js';
-import { vision } from './modules/vision.js';
-import { poetry } from './modules/poetry.js';
-import { tts } from './modules/tts.js';
-import { audioBuffer } from './modules/audioBuffer.js';
-import { config, validateConfig } from './utils/config.js';
+import { camera } from "./modules/camera.js";
+import { vision } from "./modules/vision.js";
+import { poetry } from "./modules/poetry.js";
+import { tts } from "./modules/tts.js";
+import { audioBuffer } from "./modules/audioBuffer.js";
+import { config, validateConfig } from "./utils/config.js";
 
 class Mil4dy {
   constructor() {
-    // State management
     this.isRunning = false;
     this.isGenerating = false;
     this.generationLoop = null;
-    
-    // Statistics
+
     this.stats = {
       clipsGenerated: 0,
       totalLatency: 0,
       errors: 0,
     };
-    
-    // DOM element references (set in initialize())
+
     this.elements = {};
   }
 
-  /**
-   * Initialize the application
-   * Sets up all modules and UI elements
-   */
   async initialize() {
-    console.log('🎭 Mil4dy initializing...');
-    
-    // Cache DOM elements
     this.cacheElements();
-    
-    // Validate configuration
+
     if (!validateConfig()) {
-      this.showError('Missing API keys. Please check your .env file.');
+      this.showError("Missing API keys. Please check your .env file.");
       this.hideLoading();
       return false;
     }
-    
+
     try {
-      // Initialize camera
-      this.updateStatus('Accessing camera...');
+      this.updateStatus("Accessing camera...");
       await camera.initialize(this.elements.cameraFeed);
-      
+
       // Set up event listeners
       this.setupEventListeners();
-      
+
       // Set up audio buffer callbacks
       this.setupAudioCallbacks();
-      
+
       // Ready!
       this.hideLoading();
-      this.updateStatus('Ready');
+      this.updateStatus("Ready");
       console.log('🎭 Mil4dy ready. Click "Begin" to start.');
-      
+
       return true;
-      
     } catch (error) {
-      console.error('Initialization error:', error);
+      console.error("Initialization error:", error);
       this.showError(error.message);
       this.hideLoading();
       return false;
     }
   }
 
-  /**
-   * Cache DOM element references for performance
-   */
   cacheElements() {
     this.elements = {
-      cameraFeed: document.getElementById('camera-feed'),
-      poetryOverlay: document.getElementById('poetry-overlay'),
-      startBtn: document.getElementById('start-btn'),
-      bufferFill: document.getElementById('buffer-fill'),
-      bufferText: document.getElementById('buffer-text'),
-      volumeSlider: document.getElementById('volume-slider'),
-      statusBar: document.getElementById('status-bar'),
-      statusText: document.getElementById('status-text'),
-      loadingOverlay: document.getElementById('loading-overlay'),
-      loadingText: document.getElementById('loading-text'),
-      errorToast: document.getElementById('error-toast'),
-      errorMessage: document.getElementById('error-message'),
-      errorDismiss: document.getElementById('error-dismiss'),
+      cameraFeed: document.getElementById("camera-feed"),
+      poetryOverlay: document.getElementById("poetry-overlay"),
+      startBtn: document.getElementById("start-btn"),
+      bufferFill: document.getElementById("buffer-fill"),
+      bufferText: document.getElementById("buffer-text"),
+      volumeSlider: document.getElementById("volume-slider"),
+      statusBar: document.getElementById("status-bar"),
+      statusText: document.getElementById("status-text"),
+      loadingOverlay: document.getElementById("loading-overlay"),
+      loadingText: document.getElementById("loading-text"),
+      errorToast: document.getElementById("error-toast"),
+      errorMessage: document.getElementById("error-message"),
+      errorDismiss: document.getElementById("error-dismiss"),
     };
   }
 
-  /**
-   * Set up UI event listeners
-   */
   setupEventListeners() {
-    // Start/Stop button
-    this.elements.startBtn.addEventListener('click', () => this.toggle());
-    
-    // Volume control
-    this.elements.volumeSlider.addEventListener('input', (e) => {
+    this.elements.startBtn.addEventListener("click", () => this.toggle());
+
+    this.elements.volumeSlider.addEventListener("input", (e) => {
       audioBuffer.setVolume(e.target.value / 100);
     });
-    
-    // Error dismiss
-    this.elements.errorDismiss.addEventListener('click', () => {
-      this.elements.errorToast.classList.add('hidden');
-    });
-    
-    // Keyboard shortcuts
-    document.addEventListener('keydown', (e) => {
-      if (e.code === 'Space' && e.target === document.body) {
-        e.preventDefault();
-        this.toggle();
-      }
+
+    this.elements.errorDismiss.addEventListener("click", () => {
+      this.elements.errorToast.classList.add("hidden");
     });
   }
 
@@ -135,22 +91,22 @@ class Mil4dy {
     audioBuffer.onClipStart = (clip) => {
       this.displayPoetry(clip.text);
     };
-    
+
     // When buffer is low, generate more
     audioBuffer.onBufferLow = () => {
       if (this.isRunning && !this.isGenerating) {
         this.generateClip();
       }
     };
-    
+
     // Update UI when buffer changes
     audioBuffer.onBufferUpdate = (status) => {
       this.updateBufferUI(status);
     };
-    
+
     // Handle playback errors
     audioBuffer.onError = (error) => {
-      console.error('Playback error:', error);
+      console.error("Playback error:", error);
       this.stats.errors++;
     };
   }
@@ -170,35 +126,34 @@ class Mil4dy {
    * Start the poetry generation
    */
   async start() {
-    console.log('🚀 Starting poetry generation...');
-    
+    console.log("🚀 Starting poetry generation...");
+
     this.isRunning = true;
-    this.elements.startBtn.classList.add('playing');
-    this.elements.statusBar.classList.add('active');
-    
+    this.elements.startBtn.classList.add("playing");
+    this.elements.statusBar.classList.add("active");
+
     try {
       // Initialize audio context (requires user interaction)
       await audioBuffer.initialize();
-      
+
       // Show loading while building initial buffer
-      this.updateStatus('Building buffer...');
-      this.elements.statusBar.classList.add('generating');
-      
+      this.updateStatus("Building buffer...");
+      this.elements.statusBar.classList.add("generating");
+
       // Generate initial clips (build buffer)
       // We want 2-3 clips before starting playback
       await this.generateClip();
       await this.generateClip();
-      
+
       // Start playback
-      this.updateStatus('Playing');
-      this.elements.statusBar.classList.remove('generating');
+      this.updateStatus("Playing");
+      this.elements.statusBar.classList.remove("generating");
       audioBuffer.play();
-      
+
       // Start the continuous generation loop
       this.startGenerationLoop();
-      
     } catch (error) {
-      console.error('Start error:', error);
+      console.error("Start error:", error);
       this.showError(error.message);
       this.stop();
     }
@@ -208,24 +163,24 @@ class Mil4dy {
    * Stop the poetry generation
    */
   stop() {
-    console.log('🛑 Stopping...');
-    
+    console.log("🛑 Stopping...");
+
     this.isRunning = false;
-    this.elements.startBtn.classList.remove('playing');
-    this.elements.statusBar.classList.remove('active', 'generating');
-    
+    this.elements.startBtn.classList.remove("playing");
+    this.elements.statusBar.classList.remove("active", "generating");
+
     // Stop the generation loop
     this.stopGenerationLoop();
-    
+
     // Pause audio playback
     audioBuffer.pause();
-    
-    this.updateStatus('Paused');
+
+    this.updateStatus("Paused");
   }
 
   /**
    * Start the continuous generation loop
-   * 
+   *
    * This checks the buffer periodically and generates new clips as needed.
    * The timing is crucial: we must stay ahead of playback.
    */
@@ -233,7 +188,7 @@ class Mil4dy {
     // Check and generate at intervals
     this.generationLoop = setInterval(() => {
       const status = audioBuffer.getStatus();
-      
+
       // Generate if buffer is getting low
       if (status.queuedClips < config.timing.minBufferClips + 1) {
         if (!this.isGenerating) {
@@ -255,95 +210,99 @@ class Mil4dy {
 
   /**
    * Generate a single poetry clip
-   * 
+   *
    * Pipeline: Camera → Vision → Poetry → TTS → Buffer
-   * 
+   *
    * This is the core creative pipeline.
    */
   async generateClip() {
     if (this.isGenerating) {
-      console.log('⏳ Already generating, skipping...');
+      console.log("⏳ Already generating, skipping...");
       return;
     }
-    
+
     this.isGenerating = true;
-    this.elements.statusBar.classList.add('generating');
-    
+    this.elements.statusBar.classList.add("generating");
+
     const startTime = Date.now();
-    
+
     try {
       // Step 1: Capture camera frame
-      console.log('📷 Capturing frame...');
+      console.log("📷 Capturing frame...");
       const frame = camera.captureFrame();
-      
+
       // Step 2: Analyze scene with Vision API
-      console.log('👁️ Analyzing scene...');
+      console.log("👁️ Analyzing scene...");
       const scene = await vision.analyzeFrame(frame);
-      
+
       // Step 3: Generate poetry from description
-      console.log('✨ Generating poetry...');
+      console.log("✨ Generating poetry...");
       const poem = await poetry.generate(scene.description);
-      
+
       // Step 4: Convert to speech
-      console.log('🔊 Synthesizing speech...');
+      console.log("🔊 Synthesizing speech...");
       const audio = await tts.synthesize(poem.text);
-      
+
       // Step 5: Add to playback buffer
       await audioBuffer.addToQueue(audio);
-      
+
       // Update statistics
       const totalLatency = Date.now() - startTime;
       this.stats.clipsGenerated++;
       this.stats.totalLatency += totalLatency;
-      
-      console.log(`✅ Clip generated in ${totalLatency}ms (avg: ${Math.round(this.stats.totalLatency / this.stats.clipsGenerated)}ms)`);
-      
+
+      console.log(
+        `✅ Clip generated in ${totalLatency}ms (avg: ${Math.round(
+          this.stats.totalLatency / this.stats.clipsGenerated
+        )}ms)`
+      );
     } catch (error) {
-      console.error('❌ Generation error:', error);
+      console.error("❌ Generation error:", error);
       this.stats.errors++;
-      
+
       // Show error but don't stop - try to continue
       if (this.stats.errors > 3) {
-        this.showError('Multiple errors occurred. Check console for details.');
+        this.showError("Multiple errors occurred. Check console for details.");
       }
     } finally {
       this.isGenerating = false;
-      this.elements.statusBar.classList.remove('generating');
+      this.elements.statusBar.classList.remove("generating");
     }
   }
 
   /**
    * Display poetry on screen with animation
-   * 
+   *
    * @param {string} text - Poetry text to display
    */
   displayPoetry(text) {
     // Split into lines and wrap each in a <p> tag
-    const lines = text.split('\n').filter(line => line.trim());
-    
+    const lines = text.split("\n").filter((line) => line.trim());
+
     this.elements.poetryOverlay.innerHTML = lines
-      .map(line => `<p>${this.escapeHtml(line)}</p>`)
-      .join('');
+      .map((line) => `<p>${this.escapeHtml(line)}</p>`)
+      .join("");
   }
 
   /**
    * Update buffer UI indicator
-   * 
+   *
    * @param {BufferStatus} status - Current buffer status
    */
   updateBufferUI(status) {
     // Update fill bar
-    const percentage = (status.queuedClips / config.timing.maxBufferClips) * 100;
+    const percentage =
+      (status.queuedClips / config.timing.maxBufferClips) * 100;
     this.elements.bufferFill.style.width = `${percentage}%`;
-    
+
     // Update text
     if (status.isPlaying) {
       const seconds = status.totalBufferedSeconds.toFixed(0);
       this.elements.bufferText.textContent = `Buffer: ${seconds}s`;
     } else if (status.isPaused) {
-      this.elements.bufferText.textContent = 'Paused';
+      this.elements.bufferText.textContent = "Paused";
     } else {
-      this.elements.bufferText.textContent = 'Buffer: Empty';
+      this.elements.bufferText.textContent = "Buffer: Empty";
     }
   }
 
@@ -359,16 +318,16 @@ class Mil4dy {
    * Show loading overlay with message
    * @param {string} text - Loading message
    */
-  showLoading(text = 'Loading...') {
+  showLoading(text = "Loading...") {
     this.elements.loadingText.textContent = text;
-    this.elements.loadingOverlay.classList.remove('hidden');
+    this.elements.loadingOverlay.classList.remove("hidden");
   }
 
   /**
    * Hide loading overlay
    */
   hideLoading() {
-    this.elements.loadingOverlay.classList.add('hidden');
+    this.elements.loadingOverlay.classList.add("hidden");
   }
 
   /**
@@ -377,11 +336,11 @@ class Mil4dy {
    */
   showError(message) {
     this.elements.errorMessage.textContent = message;
-    this.elements.errorToast.classList.remove('hidden');
-    
+    this.elements.errorToast.classList.remove("hidden");
+
     // Auto-hide after 5 seconds
     setTimeout(() => {
-      this.elements.errorToast.classList.add('hidden');
+      this.elements.errorToast.classList.add("hidden");
     }, 5000);
   }
 
@@ -391,7 +350,7 @@ class Mil4dy {
    * @returns {string} - Escaped text
    */
   escapeHtml(text) {
-    const div = document.createElement('div');
+    const div = document.createElement("div");
     div.textContent = text;
     return div.innerHTML;
   }
@@ -403,9 +362,10 @@ class Mil4dy {
   getStats() {
     return {
       ...this.stats,
-      averageLatency: this.stats.clipsGenerated > 0 
-        ? Math.round(this.stats.totalLatency / this.stats.clipsGenerated)
-        : 0,
+      averageLatency:
+        this.stats.clipsGenerated > 0
+          ? Math.round(this.stats.totalLatency / this.stats.clipsGenerated)
+          : 0,
       bufferStatus: audioBuffer.getStatus(),
     };
   }
@@ -419,12 +379,11 @@ class Mil4dy {
 const app = new Mil4dy();
 
 // Initialize when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => app.initialize());
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => app.initialize());
 } else {
   app.initialize();
 }
 
 // Expose to window for debugging
 window.mil4dy = app;
-

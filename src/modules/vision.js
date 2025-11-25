@@ -1,22 +1,22 @@
 /**
  * Vision Module
- * 
+ *
  * Analyzes camera frames using GPT-4o Vision API.
  * Converts what the camera "sees" into natural language descriptions.
- * 
+ *
  * Key concepts:
  * - Multimodal AI: Models that understand both text and images
  * - Base64 images: How to send images to APIs as text
  * - Prompt engineering: Crafting instructions for desired output
  */
 
-import OpenAI from 'openai';
-import { config } from '../utils/config.js';
+import OpenAI from "openai";
+import { config } from "../utils/config.js";
 
 class VisionModule {
   constructor() {
     this.client = null;
-    this.lastDescription = '';
+    this.lastDescription = "";
     this.isInitialized = false;
   }
 
@@ -26,24 +26,24 @@ class VisionModule {
    */
   initialize() {
     if (this.isInitialized) return;
-    
+
     this.client = new OpenAI({
       apiKey: config.openai.apiKey,
       // Note: In production, you'd proxy through a backend to hide the API key
       // This flag acknowledges we're making direct browser calls
       dangerouslyAllowBrowser: true,
     });
-    
+
     this.isInitialized = true;
-    console.log('👁️ Vision module initialized');
+    console.log("👁️ Vision module initialized");
   }
 
   /**
    * Analyze a camera frame and return a scene description
-   * 
+   *
    * @param {string} imageBase64 - Base64 encoded JPEG image
    * @returns {Promise<SceneDescription>} - Scene analysis results
-   * 
+   *
    * The prompt is crafted to get descriptions that inspire poetry:
    * - Focus on observable details
    * - Note mood and atmosphere
@@ -51,18 +51,18 @@ class VisionModule {
    */
   async analyzeFrame(imageBase64) {
     this.initialize();
-    
+
     const startTime = Date.now();
-    
+
     try {
       const response = await this.client.chat.completions.create({
         model: config.openai.model,
         messages: [
           {
-            role: 'user',
+            role: "user",
             content: [
               {
-                type: 'text',
+                type: "text",
                 text: `You are an observant poet's eye. Describe what you see in this image in 2-3 sentences.
 
 Focus on:
@@ -74,7 +74,7 @@ Be specific and evocative, but concise. This description will inspire poetry.
 Avoid generic descriptions. Find something interesting or meaningful in the scene.`,
               },
               {
-                type: 'image_url',
+                type: "image_url",
                 image_url: {
                   url: `data:image/jpeg;base64,${imageBase64}`,
                   // 'low' = faster & cheaper (~85 tokens), good for our use case
@@ -90,13 +90,15 @@ Avoid generic descriptions. Find something interesting or meaningful in the scen
 
       const description = response.choices[0].message.content;
       const latency = Date.now() - startTime;
-      
+
       // Check if scene changed significantly
       const isNewScene = this.detectSceneChange(description);
       this.lastDescription = description;
-      
-      console.log(`👁️ Vision (${latency}ms): ${description.substring(0, 100)}...`);
-      
+
+      console.log(
+        `👁️ Vision (${latency}ms): ${description.substring(0, 100)}...`
+      );
+
       return {
         description,
         timestamp: Date.now(),
@@ -104,18 +106,17 @@ Avoid generic descriptions. Find something interesting or meaningful in the scen
         isNewScene,
         tokens: response.usage?.total_tokens || 0,
       };
-      
     } catch (error) {
       // Handle specific API errors
       if (error.status === 401) {
-        throw new Error('Invalid OpenAI API key. Check your .env file.');
+        throw new Error("Invalid OpenAI API key. Check your .env file.");
       } else if (error.status === 429) {
-        throw new Error('Rate limited by OpenAI. Please wait a moment.');
+        throw new Error("Rate limited by OpenAI. Please wait a moment.");
       } else if (error.status === 500) {
-        throw new Error('OpenAI service error. Retrying...');
+        throw new Error("OpenAI service error. Retrying...");
       }
-      
-      console.error('Vision API error:', error);
+
+      console.error("Vision API error:", error);
       throw error;
     }
   }
@@ -123,17 +124,20 @@ Avoid generic descriptions. Find something interesting or meaningful in the scen
   /**
    * Detect if the scene has changed significantly
    * Uses simple word overlap similarity
-   * 
+   *
    * @param {string} newDescription - New scene description
    * @returns {boolean} - True if scene changed significantly
-   * 
+   *
    * This helps avoid generating redundant poetry for static scenes
    */
   detectSceneChange(newDescription) {
     if (!this.lastDescription) return true;
-    
-    const similarity = this.calculateSimilarity(newDescription, this.lastDescription);
-    
+
+    const similarity = this.calculateSimilarity(
+      newDescription,
+      this.lastDescription
+    );
+
     // If less than 50% similar, consider it a new scene
     return similarity < 0.5;
   }
@@ -141,19 +145,29 @@ Avoid generic descriptions. Find something interesting or meaningful in the scen
   /**
    * Calculate word overlap similarity between two strings
    * Simple but effective for our use case
-   * 
+   *
    * @param {string} a - First string
    * @param {string} b - Second string
    * @returns {number} - Similarity score 0-1
    */
   calculateSimilarity(a, b) {
     // Normalize and tokenize
-    const wordsA = new Set(a.toLowerCase().split(/\s+/).filter(w => w.length > 3));
-    const wordsB = new Set(b.toLowerCase().split(/\s+/).filter(w => w.length > 3));
-    
+    const wordsA = new Set(
+      a
+        .toLowerCase()
+        .split(/\s+/)
+        .filter((w) => w.length > 3)
+    );
+    const wordsB = new Set(
+      b
+        .toLowerCase()
+        .split(/\s+/)
+        .filter((w) => w.length > 3)
+    );
+
     // Count overlapping words
-    const intersection = [...wordsA].filter(word => wordsB.has(word));
-    
+    const intersection = [...wordsA].filter((word) => wordsB.has(word));
+
     // Jaccard similarity
     const union = new Set([...wordsA, ...wordsB]);
     return intersection.length / union.size;
@@ -163,7 +177,7 @@ Avoid generic descriptions. Find something interesting or meaningful in the scen
    * Reset scene tracking (for starting fresh)
    */
   reset() {
-    this.lastDescription = '';
+    this.lastDescription = "";
   }
 }
 
@@ -178,4 +192,3 @@ Avoid generic descriptions. Find something interesting or meaningful in the scen
 
 // Export singleton instance
 export const vision = new VisionModule();
-

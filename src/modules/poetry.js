@@ -1,17 +1,17 @@
 /**
  * Poetry Module
- * 
+ *
  * Transforms scene descriptions into contemplative poetry.
  * Uses GPT-4o to generate observational poetry with uplifting themes.
- * 
+ *
  * Key concepts:
  * - System prompts: Define the AI's personality and constraints
  * - Context window: Passing previous lines for continuity
  * - Temperature: Controls creativity vs. predictability
  */
 
-import OpenAI from 'openai';
-import { config } from '../utils/config.js';
+import OpenAI from "openai";
+import { config } from "../utils/config.js";
 
 class PoetryModule {
   constructor() {
@@ -27,22 +27,22 @@ class PoetryModule {
    */
   initialize() {
     if (this.isInitialized) return;
-    
+
     this.client = new OpenAI({
       apiKey: config.openai.apiKey,
       dangerouslyAllowBrowser: true,
     });
-    
+
     this.isInitialized = true;
-    console.log('✨ Poetry module initialized');
+    console.log("✨ Poetry module initialized");
   }
 
   /**
    * Generate poetry from a scene description
-   * 
+   *
    * @param {string} sceneDescription - What the camera sees
    * @returns {Promise<Poetry>} - Generated poetry with metadata
-   * 
+   *
    * The poetry style is:
    * - Observational: Starts with what is seen
    * - Transformational: Finds meaning, lessons, beauty
@@ -50,9 +50,9 @@ class PoetryModule {
    */
   async generate(sceneDescription) {
     this.initialize();
-    
+
     const startTime = Date.now();
-    
+
     // The system prompt defines the poet's voice and style
     const systemPrompt = `You are a contemplative poet who finds meaning in ordinary moments.
 
@@ -78,17 +78,20 @@ THEMATIC GUIDANCE:
 - Find the universal in the specific`;
 
     // Build context from previous generations
-    const previousContext = this.previousLines.length > 0
-      ? `\n\nPrevious verses (maintain thematic continuity):\n${this.previousLines.join('\n')}`
-      : '';
+    const previousContext =
+      this.previousLines.length > 0
+        ? `\n\nPrevious verses (maintain thematic continuity):\n${this.previousLines.join(
+            "\n"
+          )}`
+        : "";
 
     try {
       const response = await this.client.chat.completions.create({
         model: config.openai.model,
         messages: [
-          { role: 'system', content: systemPrompt },
+          { role: "system", content: systemPrompt },
           {
-            role: 'user',
+            role: "user",
             content: `What I see: ${sceneDescription}${previousContext}
 
 Write the next verses. Begin with the observation, end with meaning.`,
@@ -100,15 +103,17 @@ Write the next verses. Begin with the observation, end with meaning.`,
 
       const poetry = response.choices[0].message.content.trim();
       const latency = Date.now() - startTime;
-      
+
       // Update context for next generation
       this.addToHistory(poetry);
-      
+
       // Count actual lines (non-empty)
-      const lines = poetry.split('\n').filter(line => line.trim());
-      
-      console.log(`✨ Poetry (${latency}ms, ${lines.length} lines):\n${poetry}`);
-      
+      const lines = poetry.split("\n").filter((line) => line.trim());
+
+      console.log(
+        `✨ Poetry (${latency}ms, ${lines.length} lines):\n${poetry}`
+      );
+
       return {
         text: poetry,
         lines,
@@ -117,27 +122,26 @@ Write the next verses. Begin with the observation, end with meaning.`,
         latency,
         tokens: response.usage?.total_tokens || 0,
       };
-      
     } catch (error) {
-      console.error('Poetry generation error:', error);
+      console.error("Poetry generation error:", error);
       throw error;
     }
   }
 
   /**
    * Add generated poetry to history for continuity
-   * 
+   *
    * @param {string} poetry - The generated poetry text
-   * 
+   *
    * Why keep history?
    * - Prevents repetition
    * - Maintains thematic threads
    * - Creates a sense of journey
    */
   addToHistory(poetry) {
-    const lines = poetry.split('\n').filter(line => line.trim());
+    const lines = poetry.split("\n").filter((line) => line.trim());
     this.previousLines.push(...lines);
-    
+
     // Keep only recent history to avoid context overflow
     if (this.previousLines.length > this.maxPreviousLines) {
       this.previousLines = this.previousLines.slice(-this.maxPreviousLines);
@@ -160,7 +164,7 @@ Write the next verses. Begin with the observation, end with meaning.`,
   clearHistory() {
     this.previousLines = [];
     this.sessionTheme = null;
-    console.log('✨ Poetry history cleared');
+    console.log("✨ Poetry history cleared");
   }
 
   /**
@@ -184,4 +188,3 @@ Write the next verses. Begin with the observation, end with meaning.`,
 
 // Export singleton instance
 export const poetry = new PoetryModule();
-

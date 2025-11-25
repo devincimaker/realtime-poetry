@@ -1,9 +1,9 @@
 /**
  * Text-to-Speech Module
- * 
+ *
  * Converts poetry text into spoken audio using ElevenLabs API.
  * Returns audio as blobs that can be played via Web Audio API.
- * 
+ *
  * Key concepts:
  * - Fetch API: Making HTTP requests to external services
  * - Blob: Binary large object for handling audio data
@@ -11,20 +11,20 @@
  * - Voice settings: Controlling speech characteristics
  */
 
-import { config } from '../utils/config.js';
+import { config } from "../utils/config.js";
 
 class TTSModule {
   constructor() {
-    this.baseUrl = 'https://api.elevenlabs.io/v1';
+    this.baseUrl = "https://api.elevenlabs.io/v1";
     this.voiceId = config.elevenlabs.voiceId;
   }
 
   /**
    * Convert text to speech audio
-   * 
+   *
    * @param {string} text - Text to convert to speech
    * @returns {Promise<AudioClip>} - Audio clip with blob and metadata
-   * 
+   *
    * Voice settings explained:
    * - stability: Higher = more consistent, lower = more expressive
    * - similarity_boost: How closely to match the voice model
@@ -32,25 +32,25 @@ class TTSModule {
    */
   async synthesize(text) {
     const startTime = Date.now();
-    
+
     try {
       const response = await fetch(
         `${this.baseUrl}/text-to-speech/${this.voiceId}`,
         {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Accept': 'audio/mpeg',
-            'Content-Type': 'application/json',
-            'xi-api-key': config.elevenlabs.apiKey,
+            Accept: "audio/mpeg",
+            "Content-Type": "application/json",
+            "xi-api-key": config.elevenlabs.apiKey,
           },
           body: JSON.stringify({
             text: text,
             model_id: config.elevenlabs.modelId,
             voice_settings: {
-              stability: 0.5,           // Balanced - not too robotic, not too wild
-              similarity_boost: 0.75,   // Clear voice matching
-              style: 0.3,               // Slight expressiveness for poetry
-              use_speaker_boost: true,  // Enhanced clarity
+              stability: 0.5, // Balanced - not too robotic, not too wild
+              similarity_boost: 0.75, // Clear voice matching
+              style: 0.3, // Slight expressiveness for poetry
+              use_speaker_boost: true, // Enhanced clarity
             },
           }),
         }
@@ -59,30 +59,32 @@ class TTSModule {
       // Handle API errors
       if (!response.ok) {
         const errorText = await response.text();
-        
+
         if (response.status === 401) {
-          throw new Error('Invalid ElevenLabs API key. Check your .env file.');
+          throw new Error("Invalid ElevenLabs API key. Check your .env file.");
         } else if (response.status === 429) {
-          throw new Error('ElevenLabs rate limit reached. Please wait.');
+          throw new Error("ElevenLabs rate limit reached. Please wait.");
         } else if (response.status === 400) {
           throw new Error(`ElevenLabs error: ${errorText}`);
         }
-        
+
         throw new Error(`TTS API error (${response.status}): ${errorText}`);
       }
 
       // Get audio as blob (binary data)
       const audioBlob = await response.blob();
-      
+
       // Create a URL that can be used for playback
       const audioUrl = URL.createObjectURL(audioBlob);
-      
+
       // Get audio duration by loading it
       const duration = await this.getAudioDuration(audioUrl);
-      
+
       const latency = Date.now() - startTime;
-      console.log(`🔊 TTS (${latency}ms): ${duration.toFixed(1)}s audio generated`);
-      
+      console.log(
+        `🔊 TTS (${latency}ms): ${duration.toFixed(1)}s audio generated`
+      );
+
       return {
         blob: audioBlob,
         url: audioUrl,
@@ -91,68 +93,66 @@ class TTSModule {
         latency,
         timestamp: Date.now(),
       };
-      
     } catch (error) {
-      console.error('TTS error:', error);
+      console.error("TTS error:", error);
       throw error;
     }
   }
 
   /**
    * Get duration of audio from URL
-   * 
+   *
    * @param {string} audioUrl - Object URL for audio blob
    * @returns {Promise<number>} - Duration in seconds
-   * 
+   *
    * We need to load the audio into an Audio element
    * to read its duration metadata.
    */
   getAudioDuration(audioUrl) {
     return new Promise((resolve, reject) => {
       const audio = new Audio(audioUrl);
-      
-      audio.addEventListener('loadedmetadata', () => {
+
+      audio.addEventListener("loadedmetadata", () => {
         resolve(audio.duration);
       });
-      
-      audio.addEventListener('error', (e) => {
-        reject(new Error('Failed to load audio metadata'));
+
+      audio.addEventListener("error", (e) => {
+        reject(new Error("Failed to load audio metadata"));
       });
-      
+
       // Timeout after 10 seconds
-      setTimeout(() => reject(new Error('Audio load timeout')), 10000);
+      setTimeout(() => reject(new Error("Audio load timeout")), 10000);
     });
   }
 
   /**
    * Get list of available voices
    * Useful for building a voice selection UI
-   * 
+   *
    * @returns {Promise<Voice[]>} - Array of available voices
    */
   async getVoices() {
     try {
       const response = await fetch(`${this.baseUrl}/voices`, {
         headers: {
-          'xi-api-key': config.elevenlabs.apiKey,
+          "xi-api-key": config.elevenlabs.apiKey,
         },
       });
-      
+
       if (!response.ok) {
-        throw new Error('Failed to fetch voices');
+        throw new Error("Failed to fetch voices");
       }
-      
+
       const data = await response.json();
-      return data.voices.map(voice => ({
+      return data.voices.map((voice) => ({
         id: voice.voice_id,
         name: voice.name,
         category: voice.category,
         description: voice.description,
         previewUrl: voice.preview_url,
       }));
-      
     } catch (error) {
-      console.error('Failed to fetch voices:', error);
+      console.error("Failed to fetch voices:", error);
       return [];
     }
   }
@@ -177,7 +177,7 @@ class TTSModule {
   /**
    * Clean up object URLs to free memory
    * Call this when done with an audio clip
-   * 
+   *
    * @param {string} url - Object URL to revoke
    */
   revokeUrl(url) {
@@ -206,4 +206,3 @@ class TTSModule {
 
 // Export singleton instance
 export const tts = new TTSModule();
-

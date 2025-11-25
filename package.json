@@ -8,7 +8,12 @@
     "build": "vite build",
     "preview": "vite preview"
   },
-  "keywords": ["poetry", "ai", "camera", "realtime"],
+  "keywords": [
+    "poetry",
+    "ai",
+    "camera",
+    "realtime"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
