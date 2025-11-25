@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mil4dy - Poetry from Sight</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- Camera Feed (background layer) -->
+      <video id="camera-feed" autoplay playsinline muted></video>
+      
+      <!-- Dark overlay gradient -->
+      <div id="overlay"></div>
+      
+      <!-- Poetry Display (main content) -->
+      <div id="poetry-container">
+        <div id="poetry-overlay">
+          <p class="placeholder">Point your camera at something beautiful...</p>
+        </div>
+      </div>
+      
+      <!-- Status Bar -->
+      <div id="status-bar">
+        <span id="status-text">Ready</span>
+      </div>
+      
+      <!-- Controls -->
+      <div id="controls">
+        <button id="start-btn" class="control-btn" aria-label="Start poetry generation">
+          <span class="icon play-icon">▶</span>
+          <span class="icon pause-icon">⏸</span>
+          <span class="btn-text">Begin</span>
+        </button>
+        
+        <div id="buffer-status">
+          <div id="buffer-bar">
+            <div id="buffer-fill"></div>
+          </div>
+          <span id="buffer-text">Buffer: Empty</span>
+        </div>
+        
+        <div id="volume-control">
+          <span class="volume-icon">🔊</span>
+          <input 
+            type="range" 
+            id="volume-slider" 
+            min="0" 
+            max="100" 
+            value="80" 
+            aria-label="Volume"
+          />
+        </div>
+      </div>
+      
+      <!-- Loading/Error Overlay -->
+      <div id="loading-overlay" class="hidden">
+        <div class="loading-content">
+          <div class="spinner"></div>
+          <p id="loading-text">Awakening the poet's eye...</p>
+        </div>
+      </div>
+      
+      <!-- Error Toast -->
+      <div id="error-toast" class="hidden">
+        <span id="error-message"></span>
+        <button id="error-dismiss">✕</button>
+      </div>
+    </div>
+    
+    <!-- Main Script -->
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
+
