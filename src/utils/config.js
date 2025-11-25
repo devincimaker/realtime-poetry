@@ -12,16 +12,10 @@ export const config = {
 
   timing: {
     frameCaptureInterval: 6000, // How often to capture new frames (ms)
-    minBufferClips: 2, // Minimum clips to keep buffered
-    maxBufferClips: 3, // Maximum clips before dropping old ones
+    minBufferClips: 1, // Minimum clips to keep buffered
+    maxBufferClips: 2, // Maximum clips before dropping old ones
     crossfadeDuration: 500, // Crossfade between clips (ms)
     bufferCheckInterval: 1000, // How often to check buffer status (ms)
-  },
-
-  poetry: {
-    targetDuration: 10, // Target seconds per poetry clip
-    maxLines: 8, // Maximum lines per generation
-    minLines: 4, // Minimum lines per generation
   },
 
   vision: {

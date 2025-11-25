@@ -113,21 +113,17 @@ class Mil4dy {
     try {
       await audioBuffer.initialize();
 
-      // Show loading while building initial buffer
       this.updateStatus("Building buffer...");
       this.elements.statusBar.classList.add("generating");
 
-      // Generate initial clips (build buffer)
-      // We want 2-3 clips before starting playback
+      // TODO: This could be parallelized or the first element could be longer.
       await this.generateClip();
       await this.generateClip();
 
-      // Start playback
       this.updateStatus("Playing");
       this.elements.statusBar.classList.remove("generating");
       audioBuffer.play();
 
-      // Start the continuous generation loop
       this.startGenerationLoop();
     } catch (error) {
       console.error("Start error:", error);
