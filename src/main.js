@@ -33,10 +33,7 @@ class Mil4dy {
       this.updateStatus("Accessing camera...");
       await camera.initialize(this.elements.cameraFeed);
 
-      // Set up event listeners
       this.setupEventListeners();
-
-      // Set up audio buffer callbacks
       this.setupAudioCallbacks();
 
       // Ready!
@@ -83,37 +80,23 @@ class Mil4dy {
     });
   }
 
-  /**
-   * Set up audio buffer event callbacks
-   */
   setupAudioCallbacks() {
-    // When a clip starts playing, display its text
-    audioBuffer.onClipStart = (clip) => {
-      this.displayPoetry(clip.text);
-    };
+    audioBuffer.onClipStart = (clip) => this.displayPoetry(clip.text);
 
-    // When buffer is low, generate more
     audioBuffer.onBufferLow = () => {
       if (this.isRunning && !this.isGenerating) {
         this.generateClip();
       }
     };
 
-    // Update UI when buffer changes
-    audioBuffer.onBufferUpdate = (status) => {
-      this.updateBufferUI(status);
-    };
+    audioBuffer.onBufferUpdate = (status) => this.updateBufferUI(status);
 
-    // Handle playback errors
     audioBuffer.onError = (error) => {
       console.error("Playback error:", error);
       this.stats.errors++;
     };
   }
 
-  /**
-   * Toggle between running and stopped states
-   */
   async toggle() {
     if (this.isRunning) {
       this.stop();
@@ -122,18 +105,12 @@ class Mil4dy {
     }
   }
 
-  /**
-   * Start the poetry generation
-   */
   async start() {
-    console.log("🚀 Starting poetry generation...");
-
     this.isRunning = true;
     this.elements.startBtn.classList.add("playing");
     this.elements.statusBar.classList.add("active");
 
     try {
-      // Initialize audio context (requires user interaction)
       await audioBuffer.initialize();
 
       // Show loading while building initial buffer
@@ -280,7 +257,7 @@ class Mil4dy {
     const lines = text.split("\n").filter((line) => line.trim());
 
     this.elements.poetryOverlay.innerHTML = lines
-      .map((line) => `<p>${this.escapeHtml(line)}</p>`)
+      .map((line) => `<p>${line}</p>`)
       .join("");
   }
 
@@ -306,59 +283,28 @@ class Mil4dy {
     }
   }
 
-  /**
-   * Update status bar text
-   * @param {string} text - Status text
-   */
   updateStatus(text) {
     this.elements.statusText.textContent = text;
   }
 
-  /**
-   * Show loading overlay with message
-   * @param {string} text - Loading message
-   */
   showLoading(text = "Loading...") {
     this.elements.loadingText.textContent = text;
     this.elements.loadingOverlay.classList.remove("hidden");
   }
 
-  /**
-   * Hide loading overlay
-   */
   hideLoading() {
     this.elements.loadingOverlay.classList.add("hidden");
   }
 
-  /**
-   * Show error toast
-   * @param {string} message - Error message
-   */
   showError(message) {
     this.elements.errorMessage.textContent = message;
     this.elements.errorToast.classList.remove("hidden");
 
-    // Auto-hide after 5 seconds
     setTimeout(() => {
       this.elements.errorToast.classList.add("hidden");
     }, 5000);
   }
 
-  /**
-   * Escape HTML to prevent XSS
-   * @param {string} text - Text to escape
-   * @returns {string} - Escaped text
-   */
-  escapeHtml(text) {
-    const div = document.createElement("div");
-    div.textContent = text;
-    return div.innerHTML;
-  }
-
-  /**
-   * Get current statistics
-   * @returns {Object} - Stats object
-   */
   getStats() {
     return {
       ...this.stats,
@@ -371,19 +317,12 @@ class Mil4dy {
   }
 }
 
-// ============================================
-// Application Entry Point
-// ============================================
-
-// Create and initialize the application
 const app = new Mil4dy();
 
-// Initialize when DOM is ready
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => app.initialize());
 } else {
   app.initialize();
 }
 
-// Expose to window for debugging
 window.mil4dy = app;
